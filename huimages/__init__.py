@@ -44,15 +44,12 @@ import urlparse
 from cStringIO import StringIO
 from operator import itemgetter
 
-keys = ['S3BUCKET', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'IMAGESERVERURL']
-for key in keys:
-    if key not in os.environ:
-        raise RuntimeError("Please set the %r environment variable!" % key)
-
-COUCHSERVER = os.environ.get('COUCHSERVER', 'http://127.0.0.1:5984')
+S3BUCKET = os.environ.get('HUIMAGES3BUCKET',
+                          os.environ.get('S3BUCKET', 'originals.i.hdimg.net'))
+COUCHSERVER = os.environ.get('HUIMAGESCOUCHSERVER',
+                             os.environ.get('COUCHSERVER', 'http://127.0.0.1:5984'))
+os.environ['S3BUCKET'] = 'originals.i.hdimg.net'
 COUCHDB_NAME = "huimages"
-# Amazon S3 Bucket where you are storing the original images
-S3BUCKET = os.environ['S3BUCKET']
 # Your Amazon access credentials
 AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
 AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
@@ -141,7 +138,7 @@ def save_image(imagedata, contenttype=None, timestamp=None, title='',
 
     # Push data into S3 if needed
     conn = boto.connect_s3()
-    s3bucket = conn.get_bucket(S3BUCKET)
+    s3bucket = conn.get_bucket(S3BUCKET, validate=False)
     k = s3bucket.get_key(doc_id)
     if not k:
         headers = {}
@@ -168,7 +165,7 @@ def delete_image(imageid):
         pass
     # Push data into S3 if needed
     conn = boto.connect_s3()
-    s3bucket = conn.get_bucket(S3BUCKET)
+    s3bucket = conn.get_bucket(S3BUCKET, validate=False)
     k = s3bucket.get_key(imageid)
     if k:
         k.delete()
@@ -183,9 +180,13 @@ def get_imagedoc(imageid):
         return doc
     if len(__imagedoc_cache) > 5:
         __imagedoc_cache = {}
-    db = _setup_couchdb()
-    doc = db.get(imageid, {})
-    __imagedoc_cache[imageid] = doc
+    try:
+        db = _setup_couchdb()
+        doc = db.get(imageid, {})
+        __imagedoc_cache[imageid] = doc
+    except IOError:
+        # CouchDB not available
+        doc = None
     return doc
 
 
@@ -221,7 +222,6 @@ def _scale(want_width, want_height, is_width, is_height):
 
 def imageurl(imageid, size='o'):
     """Get the URL where the Image can be accessed."""
-    #return urlparse.urljoin(IMAGESERVERURL, os.path.join(size, imageid)) + '.jpeg'
     return scaled_imageurl(imageid, size)
 
 def scaled_imageurl(imageid, size='150x150'):

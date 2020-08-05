@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 setup(name='huImages',
       maintainer='Maximillian Dornseif',
       maintainer_email='md@hudora.de',
-      version='2.2',
+      version='2.2p3',
       url='http://github.com/hudora/huImages/',
       description='Image storage & scaling in CouchDB.',
       long_description=long_description,
@@ -18,7 +18,7 @@ setup(name='huImages',
       zip_safe=False,
       packages=find_packages(),
       include_package_data=True,
-      install_requires=['couchdb', 'huTools', 'boto'], # PIL/Imaging has serious issues with easy_install
+      install_requires=['httplib2', 'couchdb', 'huTools', 'boto'], # PIL/Imaging has serious issues with easy_install
       dependency_links = ['http://cybernetics.hudora.biz/nonpublic/eggs/',
                           'http://www.pythonware.com/products/pil/'],
 )
